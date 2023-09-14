@@ -1,15 +1,16 @@
-
 const fs = require ('fs')
-const path = 'Products.JSON'
-
 
 class ProductManager{
+    // correccion de path 
+    constructor(path) {
+        this.path = path;
+    }
     // - Leer Productos -
     async getProducts(){
     try {
-        if(fs.existsSync(path)){
-        const productsFile = await fs.promises.readFile(path , 'utf-8')
-        return JSON.parse(productsFile)
+        if (fs.existsSync(this.path)) {
+            const productsFile = await fs.promises.readFile(this.path, 'utf-8');
+            return JSON.parse(productsFile);
     }else {
             return []; 
         }
@@ -27,6 +28,13 @@ class ProductManager{
             }
 
             const products = await this.getProducts();
+            //Correccion code repetido
+            const repeatedCode = products.some((product) => product.code === code);
+
+            if (repeatedCode) {
+                console.error('Ya existe un producto con el mismo código , intentelo nuevamente');
+                return;
+            }
             let id;
 
             if (!products.length) {
@@ -39,7 +47,7 @@ class ProductManager{
             };
             products.push(newProduct);
 
-            await fs.promises.writeFile(path, JSON.stringify(products));
+            await fs.promises.writeFile(this.path, JSON.stringify(products));
         } catch (error) {
             return error;
         }
@@ -68,7 +76,7 @@ class ProductManager{
            const updatedProduct = { ...products[productIndex], ...updatedData };
             products[productIndex] = updatedProduct;
     
-             await fs.promises.writeFile(path, JSON.stringify(products));
+             await fs.promises.writeFile(this.path, JSON.stringify(products));
             console.log('Producto se ha actualizado correctamente');
         } catch (error) {
             console.error('Error al actualizar el producto:', error);
@@ -82,7 +90,7 @@ class ProductManager{
             // Filtrar para eliminar el producto del id proporcionado 
             const updatedProduct = products.filter(p=>p.id!==id)
             // Escribir lista de productos actualizada
-            await fs.promises.writeFile(path ,JSON.stringify(updatedProduct))
+            await fs.promises.writeFile(this.path ,JSON.stringify(updatedProduct))
         } catch (error) {
             return error
         }
@@ -90,33 +98,47 @@ class ProductManager{
 }
 
 async function testProductManager() {
-    const productManager = new ProductManager();
+    const productManager = new ProductManager('Products.JSON');
 
-    // Función addProduct
-    await productManager.addProduct(
-        'Producto 1', 'Descripción del producto 1', 15,'img',
-        '#1',10
-    );
-    await productManager.addProduct(
-        'Producto 2', 'Descripción del producto 2', 14,'img',
-        '#2',11
-    );
-    // Funcion para actualizar producto
-    const IdToUpdate = 1;
-    const updatedData = {
-        title: 'Producto 1 Actualizado',
-        description: 'Nueva descripción',
-        price: 20,
-        stock: 5,
-    };
-    await productManager.updateProduct(IdToUpdate, updatedData)
-    
-// Borrar un producto
-const productIdToDelete = 2;
-await productManager.deleteProduct(productIdToDelete);
+    try {
+        // Función addProduct
+        await productManager.addProduct(
+            'Producto 1', 'Descripción del producto 1', 15,'img',
+            '#1',10
+        );
+        await productManager.addProduct(
+            'Producto 2', 'Producto a eliminar', 14,'img',
+            '#2',15
+        );
+        await productManager.addProduct(
+            'Producto 3', 'Codigo Repetido', 17,'img',
+            '#2',16
+        );
+        await productManager.addProduct(
+            'Producto 4', 'Descripción del producto 4', 18,'img',
+            '#3',18
+        );
 
-// Lista de productos Actualizados
-const updatedProducts = await productManager.getProducts();
-console.log('Productos Actualizados:', updatedProducts);
+        // Funcion para actualizar producto
+        const IdToUpdate = 1;
+        const updatedData = {
+            title: 'Producto 1 Actualizado',
+            description: 'Nueva descripción',
+            price: 20,
+            stock: 5,
+        };
+        await productManager.updateProduct(IdToUpdate, updatedData)
+        
+        // Borrar un producto
+        const productIdToDelete = 2;
+        await productManager.deleteProduct(productIdToDelete);
+
+        // Lista de productos Actualizados
+        const updatedProducts = await productManager.getProducts();
+        console.log('Productos Actualizados:', updatedProducts);
+    } catch (error) {
+        console.error('Error', error);
+    }
 }
+
 testProductManager();
